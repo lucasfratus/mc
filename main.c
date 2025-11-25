@@ -101,7 +101,6 @@ static double serie_cos(double x){
 
 
 /* Redução do argumento */
-
 double seno(double x) {
     double x_reduzido = x; // arg reduzido
 
@@ -158,7 +157,23 @@ double seno(double x) {
 
 }
 
+
+static double Z(double r) {
+    return 1.0
+            + r * ( 1.0
+            + r * ( 1.0/2.0
+            + r * ( 1.0/3.0
+            + r * ( 1/0/4.0
+            ))));
+}
+
+
+static double exp_r_bailey(double r) {
+    double z = Z(r);
+    return 1.0 + 2.0 * r / (z - r);
+}
     
+
 // TESTE
 int main() {
     double a, s, err, da = dPI/50;
