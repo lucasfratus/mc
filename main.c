@@ -161,6 +161,7 @@ double seno(double x) {
 }
 
 
+/* 
 static double Z(double r) {
     return 1.0
             + r * ( 1.0
@@ -168,6 +169,15 @@ static double Z(double r) {
             + r * ( 1.0/3.0
             + r * ( 1.0/4.0
             ))));
+}
+*/
+    
+double Z(double r) {
+    double w = r * r;
+    return 2.0 + w * (1.0/6.0 +
+            w * (-1.0/360.0 +
+            w * (1.0/15120.0 +
+            w * (-1.0/604800.0))));
 }
 
 
@@ -210,13 +220,13 @@ double exp_bailey(double x) {
     reduzir_exp(x, &k, &r); // r agora está em [-ln2/512, +ln2/512]
     double r_linha = r / 256.0; // redução secundária r'= r / 256
 
-    // 2. Aproximação racional de e^r pela fórmula 1 + 2r / (Z(r) -r)
+    // 2. Aproximação racional de e^r pela fórmula 1 + 2r / (Z(r') - r')
     double er_linha = exp_r_bailey(r_linha);
 
-    // 4. Recupera e^r = (e^(r'))^256
+    // 3. Recupera e^r = (e^(r'))^256
     double er = elevar_a_256(er_linha);
 
-    // 5. 2^k via expoente IEEE-754
+    // 4. 2^k via expoente IEEE-754
     double dois_k = pow2_int(k); 
 
     return dois_k * er;
@@ -225,7 +235,7 @@ double exp_bailey(double x) {
 
 // TESTE
 int main() {
-    double a, s, err, da = dPI/50;
+    double a, s, err, da = dPI/500;
 
     // Intervalo [-2*PI, 2*PI) ; erro absoluto no cálculo do seno
     printf("\n");
@@ -240,7 +250,7 @@ int main() {
     err = fabs(s - sin(a));
     printf("x=%f  erro_sin=%e\n", a, err);
 
-    for (double x = -20.0; x <= 20.0; x += 1.0) {
+    for (double x = -15.0; x <= 15.0; x += 0.09) {
         double my  = exp_bailey(x);
         double ref = exp(x);
         double err = fabs(my - ref) / fabs(ref);
