@@ -98,3 +98,81 @@ static double serie_cos(double x){
     double y = x * x;
     return 1 + y* (k2 + y*(k4 + y*(k6 + y*(k8 + y*(k10 + y*k12)))));
 }
+
+
+/* Redução do argumento */
+
+double seno(double x) {
+    double x_reduzido = x; // arg reduzido
+
+
+    /* reduz o argumento mapeando x para o intervalo (-pi, pi) */
+    while (x_reduzido > PI) { 
+        x_reduzido -= dPI; 
+    };
+
+    while (x_reduzido <= -PI) {
+        x_reduzido += dPI; 
+    };
+
+    // Primeiro quadrante(Q1) ou Quarto quadrante(Q4) - x pertence ao intervalo de confiança
+    if (fabs(x_reduzido) <= PI4) {
+        return serie_seno(x_reduzido);
+    }
+
+    // Primeiro quadrante(Q1) - x não pertence ao intervalo de confiança
+    if (x_reduzido <= PI2 && x_reduzido > PI4 ) {
+        return serie_cos(PI2 - x_reduzido);
+    }
+
+    // Quarto quadrante(Q4) - x não pertence ao intervalo de confiança
+    if (x_reduzido < -PI4 && x_reduzido >= -PI2) {
+        return -serie_cos(x_reduzido + PI2);
+    }
+
+    // Segundo quadrante(Q2) - x não pertence ao intervalo de confiança
+    if (x_reduzido <= PI && x_reduzido > PI2) {
+        double x_reduzido_quad = PI - x_reduzido;
+
+        if (x_reduzido_quad <= PI4) {
+            // intervalo : [0, pi/4]
+            return serie_seno(x_reduzido_quad);
+        } else {
+            // intervalo : (pi/4, pi/2)
+            return serie_cos(PI2 - x_reduzido_quad);
+        }
+    }
+
+    // Terceiro quadrante(Q3) - x não pertence ao intervalo de confiança
+    if (x_reduzido <= (-PI/2) && x_reduzido > -PI) {
+        double x_reduzido_quad = PI + x_reduzido;
+
+        if (x_reduzido_quad <= PI4) {
+            // intervalo : [0, pi/4]
+            return -serie_seno(x_reduzido_quad);
+        } else {
+            // intervalo : (pi/4, pi/2)
+            return -serie_cos(PI2 - x_reduzido_quad);
+        }
+    }
+
+}
+
+    
+// TESTE
+int main() {
+    double a, s, err, da = dPI/50;
+
+    // Intervalo [-2*PI, 2*PI) ; erro absoluto no cálculo do seno
+    printf("\n");
+    for (a = -dPI; a <= +dPI; a += da) {
+        s = seno(a);
+        err = fabs(s - sin(a));
+        printf("x=%f  erro_sin=%e\n", a, err);
+    }
+    // Garantir que o último ponto (2*PI) seja incluído
+    a = dPI;
+    s = seno(a);
+    err = fabs(s - sin(a));
+    printf("x=%f  erro_sin=%e\n", a, err);
+}
