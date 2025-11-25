@@ -23,6 +23,7 @@
 #define PI2 (PI/2.0)
 #define dPI (PI*2.0)
 
+
 // Provavelmente não utilizaremos essa versão, já que não manipula via IEEE-754
 double pow_int(double base, int exp) {
     if (exp == 0) {
@@ -56,12 +57,12 @@ double pow_int(double base, int exp) {
 
 
 // Via IEEE-754
-
 // União para acessar os bits de um double
 typedef union {
     double d;
     uint64_t u;
 } DoubleBits;
+
 
 // Gera exatamente 2^k manipulando o expoente IEEE-754
 double pow2_int(int k) {
@@ -87,11 +88,13 @@ double pow2_int(int k) {
     return db.d;
 }
 
+
 // sen(x), |x| <= PI/4
 static double serie_seno(double x){
     double y = x * x;
     return x * (1 + y*(k3 + y*(k5 + y*(k7 + y*(k9 + y*k11)))));
 } 
+
 
 // cos(x), |x| <= PI/4
 static double serie_cos(double x){
@@ -163,16 +166,43 @@ static double Z(double r) {
             + r * ( 1.0
             + r * ( 1.0/2.0
             + r * ( 1.0/3.0
-            + r * ( 1/0/4.0
+            + r * ( 1.0/4.0
             ))));
 }
 
 
+// formula racional de Bailey para e^r
 static double exp_r_bailey(double r) {
     double z = Z(r);
     return 1.0 + 2.0 * r / (z - r);
 }
     
+
+// redução de argumento x = k ln 2 + r
+#define LN2 0.693147180559945309417232121458176568
+static void reduzir_exp(double x, int *k, double *r) {
+    double k_real = x / LN2;
+    *k = (int) llround(k_real); // arredonda para o inteiro mais proximo
+    *r = x - (*k) * LN2;
+}
+
+
+double exp_bailey(double x) {
+    int k;
+    double r;
+
+    // 1. Redução do argumento
+    reduzir_exp(x, &k, &r); // r agora está em [-ln2/512, +ln2/512]
+
+    // 2. Aproximação racional de e^r pela fórmula 1 + 2r / (Z(r) -r)
+    double er = exp_r_bailey(r);
+
+    // 3. 2^k via expoente IEEE-754
+    double dois_k = pow2_int(k); 
+
+    return dois_k * er;
+}
+
 
 // TESTE
 int main() {
@@ -190,4 +220,13 @@ int main() {
     s = seno(a);
     err = fabs(s - sin(a));
     printf("x=%f  erro_sin=%e\n", a, err);
+
+    for (double x = -20.0; x <= 20.0; x += 1.0) {
+        double my  = exp_bailey(x);
+        double ref = exp(x);
+        double err = fabs(my - ref) / fabs(ref);
+        printf("x=%6.2f  my=% .15e  ref=% .15e  erro_rel=% .3e\n",
+                x, my, ref, err);
+    }
+    return 0;
 }
