@@ -171,12 +171,27 @@ static double Z(double r) {
 }
 
 
-// formula racional de Bailey para e^r
+/* formula racional de Bailey para e^r' :
+    e^(r') ~= 1 + 2r' / (Z(r') - r')
+*/
 static double exp_r_bailey(double r) {
     double z = Z(r);
     return 1.0 + 2.0 * r / (z - r);
 }
     
+
+static double elevar_a_256(double x) {
+    x *= x; // 2
+    x *= x; // 4
+    x *= x; // 8
+    x *= x; // 16
+    x *= x; // 32
+    x *= x; // 64
+    x *= x; // 128
+    x *= x; // 256
+    return x;
+}
+
 
 // redução de argumento x = k ln 2 + r
 #define LN2 0.693147180559945309417232121458176568
@@ -193,11 +208,15 @@ double exp_bailey(double x) {
 
     // 1. Redução do argumento
     reduzir_exp(x, &k, &r); // r agora está em [-ln2/512, +ln2/512]
+    double r_linha = r / 256.0; // redução secundária r'= r / 256
 
     // 2. Aproximação racional de e^r pela fórmula 1 + 2r / (Z(r) -r)
-    double er = exp_r_bailey(r);
+    double er_linha = exp_r_bailey(r_linha);
 
-    // 3. 2^k via expoente IEEE-754
+    // 4. Recupera e^r = (e^(r'))^256
+    double er = elevar_a_256(er_linha);
+
+    // 5. 2^k via expoente IEEE-754
     double dois_k = pow2_int(k); 
 
     return dois_k * er;
