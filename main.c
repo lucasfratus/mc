@@ -59,15 +59,19 @@ double pow_int(double base, int exp) {
 // Via IEEE-754
 // União para acessar os bits de um double
 typedef union {
-    double d;
-    uint64_t u;
-} DoubleBits;
-
+    double x;
+    struct {
+        unsigned long long f: 52; // fração (mantissa)
+        unsigned long long E: 11; // expoente enviesado
+        unsigned long long s: 1; // sinal
+    } bits;
+} doubleIEEE;
 
 // Gera exatamente 2^k manipulando o expoente IEEE-754
 double pow2_int(int k) {
     const int bias = 1023;
-    int expo_guardado = k + bias; // valor que vai para o campo do expoente
+
+    int expo_guardado = k + bias; // expoente inviesado
 
     // tratamento de underflow/overflow
     if (expo_guardado <= 0) {
@@ -77,15 +81,11 @@ double pow2_int(int k) {
         return INFINITY; // muito grande -> infinito
     }
 
-    DoubleBits db;
-    db.u = 0ULL; // zera todos os bits
+    doubleIEEE u;
+    u.x = 1.0; // 1.0 tem expoente = bias
+    u.bits.E = expo_guardado; // coloca diretamente o novo expoente
 
-    // coloca o expoente nos 11 bits de expoente (62 - 52)
-    db.u |= ((uint64_t)expo_guardado & 0x7FFULL) << 52;
-
-    // sinal = 0, mantissa = 0
-    // => valor = 1.0 * 2^(expo_guardado - bias) = 2^k
-    return db.d;
+    return u.x; // agora vale 2^k
 }
 
 
@@ -218,7 +218,11 @@ double exp_bailey(double x) {
 
     // 1. Redução do argumento
     reduzir_exp(x, &k, &r); // r agora está em [-ln2/512, +ln2/512]
-    double r_linha = r / 256.0; // redução secundária r'= r / 256
+    // redução secundária r'= r / 256 via IEEE
+    doubleIEEE tmp;
+    tmp.x = r;
+    tmp.bits.E -= 8;
+    double r_linha = tmp.x;
 
     // 2. Aproximação racional de e^r pela fórmula 1 + 2r / (Z(r') - r')
     double er_linha = exp_r_bailey(r_linha);
